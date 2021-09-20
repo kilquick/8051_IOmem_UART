@@ -50,10 +50,13 @@ __idata unsigned char UART_en = 0;
 __idata unsigned char baudSet = 0;
 __idata unsigned char bitSet = 0;
 __idata unsigned char paritySet = 0;
+__idata unsigned char parityEven = 'null';
+__idata unsigned char parityBit = 'null';
 __idata unsigned char baudType = 'null';
 __idata unsigned char pType = 'null';
 __idata unsigned char _8b = 'null';
-__idata unsigned int frame_NES = 'null';	//	bitMode | Even/odd | Set/not
+__idata unsigned int tempFrame = 'null';
+__idata unsigned int frame_NEP = 'null';	//	bitMode | Even/odd | Set/not
 											//	X000 = 8bit, odd, no_parity
 											// 	X001 = 8bit, odd, parity
 											//	X010 = 8bit, even, no_parity
@@ -171,12 +174,17 @@ void delay(int d) /// x 1ms
 	}
 }
 
-void UART_Init(){
-    /*SCON = 0x50;  // Asynchronous mode, 8-bit data and 1-stop bit
-    TMOD = 0x20;  // Timer1 input Mode2. input 8 bit auto reload
-  	TR1 = 1;      // Turn ON the timer for Baud rate generation
-    ES  = 1;      // Enable Serial Interrupt
-    EA  = 1;      // Enable Global Interrupt bit*/
+//UART init
+void UART_init(){
+  	TR1 = 1;      	// Turn ON the timer for Baud rate generation
+    ES  = 1;		// Enable serial interrupt
+    EA  = 1;		// Enable global interrupts
+}
+
+void UART_disable(){
+	TR1 = 0;
+	ES = 0;
+	EA = 0;
 }
 
 
@@ -2955,7 +2963,7 @@ void check() {
 }
 
 void uart() {
-	__idata u8 initLock;
+	__idata u8 initLock = 0;
 	__idata u8 temp = 0;
 
 	//print UART menu options
@@ -2968,7 +2976,6 @@ void uart() {
 		LCD_string_write("[UART]\n");
 		
 	uartMain:
-		initLock = 0;
 		if (UART_en == 1){
 			setTextSize(2);
 			setColorDefault();
@@ -3016,7 +3023,7 @@ void uart() {
 			LCD_string_write("Parity\n");
 			setCursor(0, 180);
 			LCD_string_write(" <4> Disable UART\n");
-			LCD_string_write("     (Enabled)\n");
+			LCD_string_write("     [Enabled]\n");
 		} if (UART_en == 0) {
 			setTextSize(2);
 			setColorDefault();
@@ -3056,7 +3063,7 @@ void uart() {
 				setColorDefault();
 				LCD_string_write("     ");
 				setColorHighlight1();
-				LCD_string_write("(Enabled)");
+				LCD_string_write("[Enabled]");
 				setColorDefault();
 				initLock = 0;
 				temp = 0;
@@ -3065,10 +3072,13 @@ void uart() {
 				baudSet = 0;
 				bitSet = 0;
 				paritySet = 0;
+				parityEven = 'null';
+				parityBit = 'null';
 				baudType = 'null';
 				pType = 'null';
-				frame_NES = 'null';
+				frame_NEP = 'null';
 				_8b = 'null';
+				UART_disable();
 				goto uartMenu;
 			} if (UART_en == 0 ){
 				LCD_string_write("Enable UART\n");
@@ -3172,7 +3182,6 @@ void uart() {
 					LCD_string_write("\n Settings Verified:\n");
 					setColorDefault();
 					LCD_string_write(" Enabling UART...");
-					//UART_Init();
 					UART_en = 1;
 					//init UARt with settings
 					delay(40);
@@ -3384,12 +3393,12 @@ void uart() {
 					LCD_string_write("Even Parity\n");
 
 					if(_8b == 0) {
-						frame_NES = 0x111;	//9 bit, Even, Parity Set
+						frame_NEP = 0x111;	//9 bit, Even, Parity Set
 						bitSet = 1;
 						pType = 0x2;
 						goto setFrame;
 					} if (_8b == 1){
-						frame_NES = 0x011;	//8 bit, even, Parity Set
+						frame_NEP = 0x011;	//8 bit, even, Parity Set
 						bitSet = 1;
 						pType = 0x3;
 						goto setFrame;
@@ -3403,12 +3412,12 @@ void uart() {
 					LCD_string_write("Odd Parity\n");
 
 					if (_8b == 0) {
-						frame_NES = 0x101;		//9 bit, odd, parity set
+						frame_NEP = 0x101;		//9 bit, odd, parity set
 						bitSet = 1;
 						pType = 0x4;
 						goto setFrame;
 					} if (_8b == 1) {
-						frame_NES = 0x001;		//8 bit, odd, parity set
+						frame_NEP = 0x001;		//8 bit, odd, parity set
 						bitSet = 1;
 						pType = 0x5;
 						goto setFrame;
@@ -3422,44 +3431,73 @@ void uart() {
 					LCD_string_write("No Parity\n");
 					
 					if (_8b == 0) {
-						frame_NES = 0x100; 			//9 bit, odd, no parity
+						frame_NEP = 0x100; 			//9 bit, odd, no parity
 						bitSet = 1;
 						pType = 0x1;
 						goto setFrame;
 					} if (_8b == 1) {
-						frame_NES = 0x000;		 	//8 bit, odd, no parity
+						frame_NEP = 0x000;		 	//8 bit, odd, no parity
 						bitSet = 1;
 						pType = 0x7;
 						goto setFrame;
 					}
 				} else goto boop; 
 
-			setFrame:	
-				if ((frame_NES == 0x000) || 	//8 bit, odd, no parity
-					(frame_NES == 0x001) ||		//8 bit, odd, parity set
-					(frame_NES == 0x010) ||
-					(frame_NES == 0x011) ||
-					(frame_NES == 0x100) ||
-					(frame_NES == 0x101) ||
-					(frame_NES == 0x110) ||
-					(frame_NES == 0x111)) {
-						paritySet = 1;
-						goto cont;
-				}
-				else {
-						writeNewLine();
-						LCD_string_write(" Something is wrong.");
-						delay(80);
-						bitSet = 0;
-						goto uartMenu;
+			setFrame:
+				paritySet = 0;
+				if ((frame_NEP == 0x000) || 	//8 bit, odd, no parity 
+					(frame_NEP == 0x001) ||		//8 bit, odd, parity set
+					(frame_NEP == 0x010) ||		//8 bit, even, no parity
+					(frame_NEP == 0x011) ||		//8 bit, even, parity set
+					(frame_NEP == 0x100) ||		//9 bit, odd, no parity
+					(frame_NEP == 0x101) ||		//9 bit, odd, parity set
+					(frame_NEP == 0x110) ||		//9 bit, even, no parity
+					(frame_NEP == 0x111)) {		//9 bit, even, parity set
+				
+					paritySet = 1;
+					tempFrame = frame_NEP;
+					
+					if ((tempFrame & 0x100) == 0x100){ //9-bit Mode
+						initLock = 0;
+						UART_en = 1;
+						SCON = 0xC0;  	// Asynchronous mode, 9-bit data and 1-stop (b9)
+    					TMOD = 0x20;  	// Timer1 input Mode2. input auto reload
+					//	TL1 = TH1;		// set up timer bits
+						UART_init();  	// 9-bit, Serial Mode 3, variable baud
+					} if ((tempFrame & 0x100) == 0x000){
+						initLock = 0;
+						UART_en = 1;
+						SCON = 0x50;  	// Asynchronous mode, 8-bit data and 1-stop bit
+    					TMOD = 0x20;  	// Timer1 input Mode2. input 8 bit auto reload
+						UART_init();	//8-bit Mode, Serial Mode 1; variable baud
+					} if ((tempFrame & 0x010) == 0x010) {
+						initLock = 0;	//even parity
+						parityEven = 1;
+						UART_en = 1;
+					} if ((tempFrame & 0x010) == 0x000) {
+						initLock = 0;	//odd parity
+						parityEven = 0;
+						UART_en = 1;
+					} if ((tempFrame & 0x001) == 0x001) {
+						initLock = 0;	//set parity
+						UART_en = 1;
+					} if ((tempFrame & 0x001) == 0x000) {
+						initLock = 0;	//no parity
+						UART_en = 1;
+					}
+				} else {
+					writeNewLine();
+					LCD_string_write(" Something is wrong.\n  UART failed to set.\n");
+					delay(80);
+					bitSet = 0;
+					goto uartMenu;
 				}
 			cont:
 				if (initLock == 1) goto verifyUART;
 				else goto uartMenu;
 			finish:
 				return;
-		
-}
+	}
 
 
 void main() {
