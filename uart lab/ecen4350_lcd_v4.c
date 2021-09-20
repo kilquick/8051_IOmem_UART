@@ -1,6 +1,7 @@
 /*
 	author: Tyler Zoucha
-	version: v4.0
+	version: v4.1
+	Lab 1: User-driven UART settings
   
   	Adapted from: Matthew Boeding, lab/class TA after being adapted from Subharthi Banerjee, Ph.D.
 
