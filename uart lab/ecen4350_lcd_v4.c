@@ -1,6 +1,6 @@
 /*
 	author: Tyler Zoucha
-	version: v4.1
+	version: v4.1u3
 	Lab 1: User-driven UART settings
   
   	Adapted from: Matthew Boeding, lab/class TA after being adapted from Subharthi Banerjee, Ph.D.
@@ -48,11 +48,21 @@ volatile unsigned char received_flag = 0;
 __idata unsigned char selection;
 __idata unsigned char UART_en = 0;
 __idata unsigned char baudSet = 0;
-__idata u16 baudRate;
 __idata unsigned char bitSet = 0;
-__idata u8 bitMode;
 __idata unsigned char paritySet = 0;
-__idata u8 parityBit;
+__idata unsigned char baudType = 'null';
+__idata unsigned char pType = 'null';
+__idata unsigned char _8b = 'null';
+__idata unsigned int frame_NES = 'null';	//	bitMode | Even/odd | Set/not
+											//	X000 = 8bit, odd, no_parity
+											// 	X001 = 8bit, odd, parity
+											//	X010 = 8bit, even, no_parity
+											//	X011 = 8bit, even, parity
+											//	X100 = 9bit, odd, no_parity
+											//	X101 = 9bit, odd, parity
+											//	X110 = 9bit, even, no_parity
+											//	X111 = 9bit, even, parity
+
 
 #define write8inline(d)   \
 	{                     \
@@ -2947,17 +2957,6 @@ void check() {
 void uart() {
 	__idata u8 initLock;
 	__idata u8 temp = 0;
-	__idata u8 baudType = 0;
-	__idata u8 _8b = 0;
-	__idata u16 frame_NES = 0;		//	bitMode | Even/odd | Set/not
-										//	X000 = 8bit, odd, no_parity
-										// 	X001 = 8bit, odd, parity
-										//	X010 = 8bit, even, no_parity
-										//	X011 = 8bit, even, parity
-										//	X100 = 9bit, odd, no_parity
-										//	X101 = 9bit, odd, parity
-										//	X110 = 9bit, even, no_parity
-										//	X111 = 9bit, even, parity
 
 	//print UART menu options
 	uartMenu:
@@ -2998,7 +2997,23 @@ void uart() {
 			LCD_string_write("-bit Mode\n");
 			setCursor(0, 140);
 			LCD_string_write(" <3> ");
-			LCD_string_write(" Parity");
+			if (pType == 0x1) {
+				LCD_string_write("No ");
+			} if (pType == 0x2) {
+				LCD_string_write("Even ");
+			} if (pType == 0x3) {
+				LCD_string_write("Even ");
+			} if (pType == 0x4) {
+				LCD_string_write("Odd ");
+			} if (pType == 0x5) {
+				LCD_string_write("Odd ");
+			} if (pType == 0x6);
+			if (pType == 0x7) {
+				LCD_string_write("No ");
+			} if (pType == 0x8) {
+				LCD_string_write("Even ");
+			} if (pType == 0);
+			LCD_string_write("Parity\n");
 			setCursor(0, 180);
 			LCD_string_write(" <4> Disable UART\n");
 			LCD_string_write("     (Enabled)\n");
@@ -3045,14 +3060,16 @@ void uart() {
 				setColorDefault();
 				initLock = 0;
 				temp = 0;
-				_8b = 'null';
-				frame_NES = 0;
 				temp = 0;
 				UART_en = 0;
 				baudSet = 0;
 				bitSet = 0;
 				paritySet = 0;
-				goto mainInput;
+				baudType = 'null';
+				pType = 'null';
+				frame_NES = 'null';
+				_8b = 'null';
+				goto uartMenu;
 			} if (UART_en == 0 ){
 				LCD_string_write("Enable UART\n");
 				setColorDefault();
@@ -3365,17 +3382,17 @@ void uart() {
 					LCD_string_write("<1> ");
 					setColorHighlight2();
 					LCD_string_write("Even Parity\n");
+
 					if(_8b == 0) {
 						frame_NES = 0x111;	//9 bit, Even, Parity Set
 						bitSet = 1;
+						pType = 0x2;
 						goto setFrame;
 					} if (_8b == 1){
 						frame_NES = 0x011;	//8 bit, even, Parity Set
 						bitSet = 1;
+						pType = 0x3;
 						goto setFrame;
-					} else {
-						frame_NES = 0x100;	//exit
-						goto finish;
 					}
 				} if (selection == '2') {
 					setCursor(0, 100);
@@ -3388,14 +3405,13 @@ void uart() {
 					if (_8b == 0) {
 						frame_NES = 0x101;		//9 bit, odd, parity set
 						bitSet = 1;
+						pType = 0x4;
 						goto setFrame;
 					} if (_8b == 1) {
 						frame_NES = 0x001;		//8 bit, odd, parity set
 						bitSet = 1;
+						pType = 0x5;
 						goto setFrame;
-					} else {
-						frame_NES = 0x100;		//exit
-						goto finish;
 					}
 				} if (selection == '3') {
 					setCursor(0, 140);
@@ -3408,10 +3424,12 @@ void uart() {
 					if (_8b == 0) {
 						frame_NES = 0x100; 			//9 bit, odd, no parity
 						bitSet = 1;
+						pType = 0x1;
 						goto setFrame;
 					} if (_8b == 1) {
 						frame_NES = 0x000;		 	//8 bit, odd, no parity
 						bitSet = 1;
+						pType = 0x7;
 						goto setFrame;
 					}
 				} else goto boop; 
