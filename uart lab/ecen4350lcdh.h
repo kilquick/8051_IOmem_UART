@@ -197,6 +197,10 @@ unsigned int inputAddress();
 unsigned char inputBlockType();
 unsigned char inputBlockSize();
 
+unsigned int getBaud(void);
+unsigned char getBits(void);
+unsigned char getParity(void);
+
 void printMenu(void);                           // display main menu
 
 void dump(void);                                // memory dump
@@ -205,7 +209,7 @@ void edit(void);                                // memory edit
 void find(void);                                // memory find
 void count(void);                               // memory count
 void check(void);                               // memory check
-void uart(void);
+void uart(void);                                // uart function
 
 unsigned char hexToASCII(unsigned char key);        // convert hex value to ascii
 unsigned char ASCIItoHex(unsigned char key);         // convert ascii to hex value

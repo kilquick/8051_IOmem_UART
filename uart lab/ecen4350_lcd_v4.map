@@ -48,7 +48,7 @@ C:   0000000A  l_GSINIT2
 C:   00000010  s_REG_BANK_2                    
 C:   00000018  s_BIT_BANK                      
 C:   00000018  s_REG_BANK_3                    
-C:   0000001B  l_ISEG                          
+C:   00000020  l_ISEG                          
 C:   00000020  s_BSEG_BYTES                    
 C:   00000020  s__CODE                         
 C:   00000022  l_GSINIT                        
@@ -70,19 +70,19 @@ C:   0000002C  s_GSINIT2
 C:   00000036  s_GSINIT3                       
 C:   00000058  s_GSINIT4                       
 C:   0000006B  s_OSEG                          
+C:   0000006F  l_SSEG                          
 C:   00000071  s_ISEG                          
-C:   00000074  l_SSEG                          
 C:   00000080  l_DSEG                          
 C:   00000082  s_GSINIT                        
 C:   00000082  s_GSINIT5                       
-C:   0000008C  s_SSEG                          
+C:   00000091  s_SSEG                          
 C:   000000A4  s_GSFINAL                       
 C:   000000A7  s_CSEG                          
 C:   00000100  l_IRAM                          
-C:   00000F33  l_CONST                         
-C:   00004EE4  l_CSEG                          
-C:   00004F8B  s_CONST                         
-C:   00005EBE  s_XINIT                         
+C:   0000112C  l_CONST                         
+C:   000057BD  l_CSEG                          
+C:   00005864  s_CONST                         
+C:   00006990  s_XINIT                         
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 3.
 Hexadecimal  [32-Bits]
@@ -317,26 +317,29 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-ISEG                                00000071    0000001B =          27. bytes (REL,CON)
+ISEG                                00000071    00000020 =          32. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
      00000071  _selection                         ecen4350_lcd_v4
      00000072  _UART_en                           ecen4350_lcd_v4
      00000073  _baudSet                           ecen4350_lcd_v4
-     00000074  _paritySet                         ecen4350_lcd_v4
-     00000075  _bitSet                            ecen4350_lcd_v4
+     00000074  _baudRate                          ecen4350_lcd_v4
+     00000076  _bitSet                            ecen4350_lcd_v4
+     00000077  _bitMode                           ecen4350_lcd_v4
+     00000078  _paritySet                         ecen4350_lcd_v4
+     00000079  _parityBit                         ecen4350_lcd_v4
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 10.
 Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-SSEG                                0000008C    00000074 =         116. bytes (REL,OVR)
+SSEG                                00000091    0000006F =         111. bytes (REL,OVR)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     0000008C  __start__stack                     ecen4350_lcd_v4
+     00000091  __start__stack                     ecen4350_lcd_v4
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 11.
 Hexadecimal  [32-Bits]
@@ -415,7 +418,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CSEG                                000000A7    00004EE4 =       20196. bytes (REL,CON,CODE)
+CSEG                                000000A7    000057BD =       22461. bytes (REL,CON,CODE)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -427,98 +430,98 @@ C:   000000C9  _writeAllRAM                       ecen4350_lcd_v4
 C:   000000F8  _checkAllRAM                       ecen4350_lcd_v4
 C:   00000187  _delay                             ecen4350_lcd_v4
 C:   000001BA  _UART_Init                         ecen4350_lcd_v4
-C:   000001C7  _UART_transmit                     ecen4350_lcd_v4
-C:   000001D0  _ISR_receive                       ecen4350_lcd_v4
-C:   000001DC  _writeRegister8                    ecen4350_lcd_v4
-C:   000001FC  _writeRegister16                   ecen4350_lcd_v4
-C:   00000241  _seg7Test                          ecen4350_lcd_v4
-C:   0000039C  _rtcInit                           ecen4350_lcd_v4
-C:   000003D2  _rtcBusy                           ecen4350_lcd_v4
-C:   000003E0  _rtcCmd                            ecen4350_lcd_v4
-C:   000003E9  _rtcWrite                          ecen4350_lcd_v4
-C:   00000418  _rtcRead                           ecen4350_lcd_v4
-C:   0000044D  _rtcPrint                          ecen4350_lcd_v4
-C:   0000055D  _setCursor                         ecen4350_lcd_v4
-C:   0000056A  _setTextColor                      ecen4350_lcd_v4
-C:   00000577  _setTextSize                       ecen4350_lcd_v4
-C:   0000058F  _setRotation                       ecen4350_lcd_v4
-C:   000005FA  _setAddress                        ecen4350_lcd_v4
-C:   00000695  _TFT_LCD_INIT                      ecen4350_lcd_v4
-C:   000007D4  _drawPixel                         ecen4350_lcd_v4
-C:   00000825  _drawCircle                        ecen4350_lcd_v4
-C:   00000ABE  _testCircles                       ecen4350_lcd_v4
-C:   00000B50  _fillRect                          ecen4350_lcd_v4
-C:   00000C2D  _fillTop                           ecen4350_lcd_v4
-C:   00000D13  _fillScreen                        ecen4350_lcd_v4
-C:   00000DFA  _clearLCD                          ecen4350_lcd_v4
-C:   00000E00  _drawChar                          ecen4350_lcd_v4
-C:   00001011  _write                             ecen4350_lcd_v4
-C:   00001077  _LCD_string_write                  ecen4350_lcd_v4
-C:   000010B6  _writeNewLine                      ecen4350_lcd_v4
-C:   000010BC  _freeType                          ecen4350_lcd_v4
-C:   00001195  _keyDetect                         ecen4350_lcd_v4
-C:   0000129E  _reverse                           ecen4350_lcd_v4
-C:   0000130E  _reverse16                         ecen4350_lcd_v4
-C:   0000138D  _hexToASCII                        ecen4350_lcd_v4
-C:   00001403  _ASCIItoHex                        ecen4350_lcd_v4
-C:   00001479  _asciiToDec                        ecen4350_lcd_v4
-C:   000014CD  _asciiToHex                        ecen4350_lcd_v4
-C:   00001542  _print4Hex                         ecen4350_lcd_v4
-C:   00001548  _print8Hex                         ecen4350_lcd_v4
-C:   0000155F  _print16Hex                        ecen4350_lcd_v4
-C:   00001575  _print16Dec                        ecen4350_lcd_v4
-C:   000015CA  _print8ASCII                       ecen4350_lcd_v4
-C:   000015CD  _print16ASCII                      ecen4350_lcd_v4
+C:   000001BB  _UART_transmit                     ecen4350_lcd_v4
+C:   000001C4  _ISR_receive                       ecen4350_lcd_v4
+C:   000001D0  _writeRegister8                    ecen4350_lcd_v4
+C:   000001F0  _writeRegister16                   ecen4350_lcd_v4
+C:   00000235  _seg7Test                          ecen4350_lcd_v4
+C:   00000390  _rtcInit                           ecen4350_lcd_v4
+C:   000003C6  _rtcBusy                           ecen4350_lcd_v4
+C:   000003D4  _rtcCmd                            ecen4350_lcd_v4
+C:   000003DD  _rtcWrite                          ecen4350_lcd_v4
+C:   0000040C  _rtcRead                           ecen4350_lcd_v4
+C:   00000441  _rtcPrint                          ecen4350_lcd_v4
+C:   00000551  _setCursor                         ecen4350_lcd_v4
+C:   0000055E  _setTextColor                      ecen4350_lcd_v4
+C:   0000056B  _setTextSize                       ecen4350_lcd_v4
+C:   00000583  _setRotation                       ecen4350_lcd_v4
+C:   000005EE  _setAddress                        ecen4350_lcd_v4
+C:   00000689  _TFT_LCD_INIT                      ecen4350_lcd_v4
+C:   000007C8  _drawPixel                         ecen4350_lcd_v4
+C:   00000819  _drawCircle                        ecen4350_lcd_v4
+C:   00000AB2  _testCircles                       ecen4350_lcd_v4
+C:   00000B44  _fillRect                          ecen4350_lcd_v4
+C:   00000C21  _fillTop                           ecen4350_lcd_v4
+C:   00000D07  _fillScreen                        ecen4350_lcd_v4
+C:   00000DEE  _clearLCD                          ecen4350_lcd_v4
+C:   00000DF4  _drawChar                          ecen4350_lcd_v4
+C:   00001005  _write                             ecen4350_lcd_v4
+C:   0000106B  _LCD_string_write                  ecen4350_lcd_v4
+C:   000010AA  _writeNewLine                      ecen4350_lcd_v4
+C:   000010B0  _freeType                          ecen4350_lcd_v4
+C:   00001189  _keyDetect                         ecen4350_lcd_v4
+C:   00001292  _reverse                           ecen4350_lcd_v4
+C:   00001302  _reverse16                         ecen4350_lcd_v4
+C:   00001381  _hexToASCII                        ecen4350_lcd_v4
+C:   000013F7  _ASCIItoHex                        ecen4350_lcd_v4
+C:   0000146D  _asciiToDec                        ecen4350_lcd_v4
+C:   000014C1  _asciiToHex                        ecen4350_lcd_v4
+C:   00001536  _print4Hex                         ecen4350_lcd_v4
+C:   0000153C  _print8Hex                         ecen4350_lcd_v4
+C:   00001553  _print16Hex                        ecen4350_lcd_v4
+C:   00001569  _print16Dec                        ecen4350_lcd_v4
+C:   000015BE  _print8ASCII                       ecen4350_lcd_v4
+C:   000015C1  _print16ASCII                      ecen4350_lcd_v4
 ASxxxx Linker V03.00 + NoICE + sdld,  page 19.
 Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CSEG                                000000A7    00004EE4 =       20196. bytes (REL,CON,CODE)
+CSEG                                000000A7    000057BD =       22461. bytes (REL,CON,CODE)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-C:   000015E3  _writeSomeLines                    ecen4350_lcd_v4
-C:   0000163B  _setColorDefault                   ecen4350_lcd_v4
-C:   00001646  _setColorSelect                    ecen4350_lcd_v4
-C:   00001651  _setColorHighlight1                ecen4350_lcd_v4
-C:   0000165D  _setColorHighlight2                ecen4350_lcd_v4
-C:   00001669  _setColorGray                      ecen4350_lcd_v4
-C:   00001674  _setColorMenu                      ecen4350_lcd_v4
-C:   00001680  _setColorRed                       ecen4350_lcd_v4
-C:   0000168B  _setColorWhite                     ecen4350_lcd_v4
-C:   00001696  _setColorGreen                     ecen4350_lcd_v4
-C:   000016A1  _setColorYellow                    ecen4350_lcd_v4
-C:   000016AC  _inputAddress                      ecen4350_lcd_v4
-C:   0000174E  _inputBlockType                    ecen4350_lcd_v4
-C:   0000175C  _inputBlockSize                    ecen4350_lcd_v4
-C:   000017A0  _printMenu                         ecen4350_lcd_v4
-C:   00001A0F  _dump                              ecen4350_lcd_v4
-C:   000022D0  _move                              ecen4350_lcd_v4
-C:   00002839  _edit                              ecen4350_lcd_v4
-C:   00002F95  _find                              ecen4350_lcd_v4
-C:   00003A99  _count                             ecen4350_lcd_v4
-C:   00004574  _check                             ecen4350_lcd_v4
-C:   00004696  _uart                              ecen4350_lcd_v4
-C:   000049C3  _main                              ecen4350_lcd_v4
-C:   00004E6A  __divuint                          _divuint
-C:   00004E93  __mulint                           _mulint
-C:   00004E93  __mulint_dummy                     _mulint
-C:   00004EB0  __moduint                          _moduint
-C:   00004EFD  __gptrget                          _gptrget
-C:   00004F19  __modsint                          _modsint
-C:   00004F4F  __divsint                          _divsint
-C:   00004F87  __sdcc_external_startup            _startup
+C:   000015D7  _writeSomeLines                    ecen4350_lcd_v4
+C:   0000162F  _setColorDefault                   ecen4350_lcd_v4
+C:   0000163A  _setColorSelect                    ecen4350_lcd_v4
+C:   00001645  _setColorHighlight1                ecen4350_lcd_v4
+C:   00001651  _setColorHighlight2                ecen4350_lcd_v4
+C:   0000165D  _setColorGray                      ecen4350_lcd_v4
+C:   00001668  _setColorMenu                      ecen4350_lcd_v4
+C:   00001674  _setColorRed                       ecen4350_lcd_v4
+C:   0000167F  _setColorWhite                     ecen4350_lcd_v4
+C:   0000168A  _setColorGreen                     ecen4350_lcd_v4
+C:   00001695  _setColorYellow                    ecen4350_lcd_v4
+C:   000016A0  _inputAddress                      ecen4350_lcd_v4
+C:   00001742  _inputBlockType                    ecen4350_lcd_v4
+C:   00001750  _inputBlockSize                    ecen4350_lcd_v4
+C:   00001794  _printMenu                         ecen4350_lcd_v4
+C:   000018EF  _dump                              ecen4350_lcd_v4
+C:   000021B0  _move                              ecen4350_lcd_v4
+C:   00002719  _edit                              ecen4350_lcd_v4
+C:   00002E75  _find                              ecen4350_lcd_v4
+C:   00003979  _count                             ecen4350_lcd_v4
+C:   00004454  _check                             ecen4350_lcd_v4
+C:   00004576  _uart                              ecen4350_lcd_v4
+C:   00005327  _main                              ecen4350_lcd_v4
+C:   00005743  __divuint                          _divuint
+C:   0000576C  __mulint                           _mulint
+C:   0000576C  __mulint_dummy                     _mulint
+C:   00005789  __moduint                          _moduint
+C:   000057D6  __gptrget                          _gptrget
+C:   000057F2  __modsint                          _modsint
+C:   00005828  __divsint                          _divsint
+C:   00005860  __sdcc_external_startup            _startup
 ASxxxx Linker V03.00 + NoICE + sdld,  page 20.
 Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CONST                               00004F8B    00000F33 =        3891. bytes (REL,CON,CODE)
+CONST                               00005864    0000112C =        4396. bytes (REL,CON,CODE)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-C:   00005486  _keypad                            ecen4350_lcd_v4
+C:   00005D5F  _keypad                            ecen4350_lcd_v4
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 21.
 

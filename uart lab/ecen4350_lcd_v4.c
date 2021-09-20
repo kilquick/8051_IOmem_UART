@@ -5,10 +5,6 @@
   	Adapted from: Matthew Boeding, lab/class TA after being adapted from Subharthi Banerjee, Ph.D.
 
 	README
-
-/// The sole reason to provide this code is to make your TFTLCD (ILI9341)
-/// up and running
-
 /// Note: Most of the code is input one place. This is not ideal and I plan to change
 ///   it input the future
 
@@ -51,9 +47,11 @@ volatile unsigned char received_flag = 0;
 __idata unsigned char selection;
 __idata unsigned char UART_en = 0;
 __idata unsigned char baudSet = 0;
-__idata unsigned char paritySet = 0;
+__idata u16 baudRate;
 __idata unsigned char bitSet = 0;
-
+__idata u8 bitMode;
+__idata unsigned char paritySet = 0;
+__idata u8 parityBit;
 
 #define write8inline(d)   \
 	{                     \
@@ -163,11 +161,11 @@ void delay(int d) /// x 1ms
 }
 
 void UART_Init(){
-    SCON = 0x50;  // Asynchronous mode, 8-bit data and 1-stop bit
+    /*SCON = 0x50;  // Asynchronous mode, 8-bit data and 1-stop bit
     TMOD = 0x20;  // Timer1 input Mode2. input 8 bit auto reload
   	TR1 = 1;      // Turn ON the timer for Baud rate generation
     ES  = 1;      // Enable Serial Interrupt
-    EA  = 1;      // Enable Global Interrupt bit
+    EA  = 1;      // Enable Global Interrupt bit*/
 }
 
 
@@ -1162,7 +1160,6 @@ unsigned char inputBlockSize() {
 // Main Menu
 void printMenu() {
 
-	if (UART_en == 1) goto withUART;
 	setCursor(0,0);
 	clearLCD();
 	
@@ -1215,65 +1212,15 @@ void printMenu() {
 	setColorWhite();
 	LCD_string_write(" <1>");
 	setColorDefault();
-	LCD_string_write(" UART [Disabled]");
-	goto exit;
-
-	withUART:
-	setCursor(0,0);
-	clearLCD();
-	
-	//print main menu with UART status/info
-	fillTop(GRAY);
-	setTextSize(5);
-	setColorMenu();
-	setCursor(30, 0);
-	LCD_string_write("<Menu>\n");
-	
+	LCD_string_write(" UART");
+	setTextSize(1);
+	if (UART_en == 0) {
+		LCD_string_write(" [Disabled]\n");
+	} if (UART_en == 1) {
+		LCD_string_write(" [Enabled]\n");
+	}
 	setTextSize(2);
-	
-	setCursor(0, 60);
-	setColorWhite();
-	LCD_string_write(" <D>");
-	setColorDefault();
-	LCD_string_write(" DUMP\n");
-	
-	setCursor(120, 60);
-	setColorWhite();
-	LCD_string_write(" <B>");
-	setColorDefault();
-	LCD_string_write(" MOVE\n");
-	
-	setCursor(0, 100);
-	setColorWhite();
-	LCD_string_write(" <E>");
-	setColorDefault();
-	LCD_string_write(" EDIT\n");
-	
-	setCursor(120, 100);
-	setColorWhite();
-	LCD_string_write(" <F>");
-	setColorDefault();
-	LCD_string_write(" FIND\n");
-	
-	setCursor(0, 140);
-	setColorWhite();
-	LCD_string_write(" <C>");
-	setColorDefault();
-	LCD_string_write(" COUNT\n");
-	
-	setCursor(0, 180);
-	setColorWhite();
-	LCD_string_write(" <A>");
-	setColorDefault();
-	LCD_string_write(" MEM CHECK\n");
-
-	setCursor(0, 220);
-	setColorWhite();
-	LCD_string_write(" <1>");
-	setColorDefault();
-	LCD_string_write(" UART [Enabled]");
-	exit: 
-		return;
+	return;
 }
 
 void dump()
@@ -2997,155 +2944,255 @@ void check() {
 }
 
 void uart() {
-	clearLCD();
-	fillTop(GRAY);
-	setTextSize(5);
-	setColorMenu();
-	setCursor(30, 0);
-	LCD_string_write("[UART]\n");
+	__idata u8 initLock;
+	__idata u8 temp = 0;
+	__idata u8 baudType = 0;
+	__idata u8 _8b = 0;
+	__idata u16 frame_NES = 0;		//	bitMode | Even/odd | Set/not
+										//	X000 = 8bit, odd, no_parity
+										// 	X001 = 8bit, odd, parity
+										//	X010 = 8bit, even, no_parity
+										//	X011 = 8bit, even, parity
+										//	X100 = 9bit, odd, no_parity
+										//	X101 = 9bit, odd, parity
+										//	X110 = 9bit, even, no_parity
+										//	X111 = 9bit, even, parity
 
-	
 	//print UART menu options
-	setTextSize(2);
-	setColorDefault();
-	setCursor(0, 60);
-	LCD_string_write(" <1> Set Data Rate\n");
-	setCursor(0, 100);
-	LCD_string_write(" <2> Number of Bits\n    (8 or 9 bits)\n");
-	setCursor(0, 140);
-	LCD_string_write(" <3> Parity\n    (Even/Odd/None)\n");
-	setCursor(0, 200);
-	LCD_string_write(" <4> Enable UART\n");
-	setCursor(0, 240);
-	LCD_string_write(" <0> Exit \n");
-	keyInput:
-	selection = keyDetect();
-	if (selection =='0') {
-		setCursor (0, 240);
-		LCD_string_write(" ");
-		setColorHighlight1();
-		LCD_string_write("<4> ");
-		setColorHighlight2();
-		LCD_string_write("Exit\n");
-		delay(20);
-		goto finish;
-	}
-	if (selection == '4') {
-		setCursor (0, 180);
-		LCD_string_write(" ");
-		setColorHighlight1();
-		LCD_string_write("<4> ");
-		setColorHighlight2();
-		LCD_string_write("Enable UART\n");
-		delay(20);
-		goto verifyUART;
-	} else {
-		if (selection == '1') {
+	uartMenu:
+		clearLCD();
+		fillTop(GRAY);
+		setTextSize(5);
+		setColorMenu();
+		setCursor(30, 0);
+		LCD_string_write("[UART]\n");
+		
+	uartMain:
+		initLock = 0;
+		if (UART_en == 1){
+			setTextSize(2);
+			setColorDefault();
+			setCursor(0, 60);
+			LCD_string_write(" <1> ");
+			if (baudType == 0x1) {
+				LCD_string_write("1200");
+			}
+			if (baudType == 0x2) {
+				LCD_string_write("2400");
+			} if (baudType == 0x3){
+				LCD_string_write("4800");
+			} if (baudType == 0x4){
+				LCD_string_write("9600");
+			} if (baudType == 0x5) {
+				LCD_string_write("19200");
+			}
+			LCD_string_write(" baud\n");
+			setCursor(0, 100);
+			LCD_string_write(" <2> ");
+			if (_8b == 1) {
+				LCD_string_write("8");
+			} if (_8b == 0) {
+				LCD_string_write("9");
+			}
+			LCD_string_write("-bit Mode\n");
+			setCursor(0, 140);
+			LCD_string_write(" <3> ");
+			LCD_string_write(" Parity");
+			setCursor(0, 180);
+			LCD_string_write(" <4> Disable UART\n");
+			LCD_string_write("     (Enabled)\n");
+		} if (UART_en == 0) {
+			setTextSize(2);
+			setColorDefault();
+			setCursor(0, 60);
+			LCD_string_write(" <1> Set Data Rate\n");
+			setCursor(0, 100);
+			LCD_string_write(" <2> Number of Bits\n     (8 or 9 bits)\n");
+			setCursor(0, 140);
+			LCD_string_write(" <3> Parity (Even)\n     (Odd/None)\n");
+			setCursor(0, 180);
+			LCD_string_write(" <4> Enable UART\n");
+			LCD_string_write("     (Disabled)\n");
+		}
+		setCursor(0, 240);
+		LCD_string_write(" <0> Exit \n");
+		
+	mainInput:
+		selection = keyDetect();
+		if (selection =='0') {
+			setCursor (0, 240);
+			LCD_string_write(" ");
+			setColorHighlight1();
+			LCD_string_write("<0> ");
+			setColorHighlight2();
+			LCD_string_write("Exit\n");
+			delay(20);
+			goto finish;
+		}
+		if (selection == '4') {
+			setCursor (0, 180);
+			LCD_string_write(" ");
+			setColorHighlight1();
+			LCD_string_write("<4> ");
+			setColorHighlight2();
+			if (UART_en == 1) {
+				LCD_string_write("Disable UART\n");
+				setColorDefault();
+				LCD_string_write("     ");
+				setColorHighlight1();
+				LCD_string_write("(Enabled)");
+				setColorDefault();
+				initLock = 0;
+				temp = 0;
+				_8b = 'null';
+				frame_NES = 0;
+				temp = 0;
+				UART_en = 0;
+				baudSet = 0;
+				bitSet = 0;
+				paritySet = 0;
+				goto mainInput;
+			} if (UART_en == 0 ){
+				LCD_string_write("Enable UART\n");
+				setColorDefault();
+				LCD_string_write("     ");
+				setColorHighlight1();
+				LCD_string_write("(Disabled)");
+				setColorDefault();
+			}
+			delay(40);
+			initLock = 1;
+			goto verifyUART;
+		} if (selection == '1') {
 			setCursor (0, 60);
-			LCD_string_write("  {");
+			LCD_string_write(" ");
 			setColorHighlight1();
 			LCD_string_write("<1> ");
 			setColorHighlight2();
 			LCD_string_write("Set Data Rate\n");
 			delay(20);
-			goto baudInput;	
+			if (UART_en == 1) {
+				setCursor(0, 200);
+				setColorRed();
+				LCD_string_write("\n\n\n\n Please disable\n UART first.\n");
+				setColorDefault();
+				setCursor(0, 60);
+				LCD_string_write(" <1> Set Data Rate\n");
+				goto mainInput;
+			} if (UART_en == 0) {
+				goto setRate;
+			}
 		}
 		if (selection == '2') {
 			setCursor (0, 100);
-			LCD_string_write("  {");
+			LCD_string_write(" ");
 			setColorHighlight1();
 			LCD_string_write("<2> ");
 			setColorHighlight2();
 			LCD_string_write("Number of Bits\n");
-			setColorHighlight1("    (Even/Odd/None)\n");
-			goto setBit;
+			setColorDefault();
+			LCD_string_write("     ");
+			setColorHighlight1();
+			LCD_string_write("(8 or 9 bits)\n");
+			if (UART_en == 1) {
+				setCursor(0, 200);
+				setColorRed();
+				LCD_string_write("\n\n\n\n Please disable\n UART first.\n");
+				setColorDefault();
+				setCursor(0, 100);		
+				LCD_string_write(" <2> Number of Bits\n     (8 or 9 bits)\n");
+				goto mainInput;
+			} if (UART_en == 0) goto setBit;
 		} if (selection == '3') {
-			delay(5);
+			setCursor (0, 140);
+			LCD_string_write(" ");
+			setColorHighlight1();
+			LCD_string_write("<3> ");
+			setColorHighlight2();
+			LCD_string_write("Parity ");
+			setColorHighlight1();
+			LCD_string_write("(Even/\n");
+			setColorDefault();
+			LCD_string_write("     ");
+			setColorHighlight1();
+			LCD_string_write("(Odd/None)\n");
+			if (UART_en == 1) {
+				setCursor(0, 200);
+				setColorRed();
+				LCD_string_write("\n\n\n\n Please disable\n UART first.\n");
+				setColorDefault();
+				setCursor(0, 140);
+				LCD_string_write(" <3> Parity (Even)\n     (Odd/None)\n");
+				goto mainInput;
+			} if (UART_en == 0) goto setParity;
 		} else {
-			LCD_string_write("\n\n Incorrect input\n  Try again.\n");
-			goto keyInput;
+		setColorRed();
+		setCursor(0, 200);
+		LCD_string_write("\n\n\n\n Incorrect input\n  Try again.\n");
+		setColorDefault();
+		goto mainInput;
 		}
-	}
 
-	verifyUART:	
-	if (baudSet == 0) {
-		LCD_string_write(" ERROR: No Baud Set\n");
-		LCD_string_write(" Please set a\nbaud rate");
-		goto keyInput;
-	} if (paritySet == 0) {
-		LCD_string_write(" ERROR: Not Parity Set\n");
-		LCD_string_write(" Please set parity");
-		goto keyInput;
-	} if (bitSet == 0) {
-		LCD_string_write(" ERROR: No Baud Set\n");
-		LCD_string_write(" Please set a baud rate");
-		goto keyInput;
-	} else {
-		if ((baudSet == 1) && (paritySet == 1) && (baudSet == 1)) {
-			LCD_string_write(" Setttings Verified\n Enabling UART...");
-			//UART_Init();
-			UART_en = 1;
-			//init UARt with settings
-		}
-	}
-
-	keyValidation:
-		selection = keyDetect();
-		if (selection == '1'){
-			setCursor(0,60);
-			LCD_string_write(" ");
-			setColorHighlight1();
-			LCD_string_write("<1>");
-			setColorHighlight2();
-			LCD_string_write(" Data Rate\n");
-			delay(40);
-
-			clearLCD();
-			fillTop(GRAY);
-			setTextSize(5);
-			setColorMenu();
-			setCursor(30, 0);
-			LCD_string_write("[UART]\n");
-			goto setRate;
-		}
-		if (selection == '2') {
-			setCursor(0,100);
-			LCD_string_write(" ");
-			setColorHighlight1();
-			LCD_string_write("<2>");
-			setColorHighlight2();
-			LCD_string_write(" Number of Bits\n    (8 or 9 bits)\n");
-			delay(40);
-			
-			clearLCD();
-			fillTop(GRAY);
-			setTextSize(5);
-			setColorMenu();
-			setCursor(30, 0);
-			LCD_string_write("[UART]\n");
-			goto setBit;
-		}
-		if (selection == '3') {
-			setCursor(0,140);
-			LCD_string_write(" ");
-			setColorHighlight1();
-			LCD_string_write("<3>");
-			setColorHighlight2();
-			LCD_string_write(" Parity\n    (Even/Odd/None)\n");
-			delay(30);
-			
-			clearLCD();
-			fillTop(GRAY);
-			setTextSize(5);
-			setColorMenu();
-			setCursor(30, 0);
-			LCD_string_write("[UART]\n");
-			goto setParity;
-		} else {
-			goto keyValidation;
-		} 
-			
-		setRate: 
+	verifyUART:
+		clearLCD();
+		setCursor(0, 120);
+		if (initLock == 1) {
+			if (UART_en == 1) {
+				setColorGreen();
+				LCD_string_write("\n Disabling UART...\n");
+				setColorDefault();
+				delay(40);
+				UART_en = 0;
+				bitSet = 0;
+				paritySet = 0;
+				baudSet = 0;
+				setColorDefault();
+				goto uartMenu;
+			} if (UART_en == 0) {
+				if ((baudSet == 1) && (paritySet == 1) && (bitSet == 1)) {
+					setColorSelect();
+					LCD_string_write("\n Settings Verified:\n");
+					setColorDefault();
+					LCD_string_write(" Enabling UART...");
+					//UART_Init();
+					UART_en = 1;
+					//init UARt with settings
+					delay(40);
+					goto uartMenu;
+				} else {
+					if (baudSet == 0) {
+						setColorRed();
+						LCD_string_write(" BAUD ERROR\n");
+						setColorDefault();
+						LCD_string_write(" Entering Baud...\n");
+						delay(40);
+						goto setRate;
+					} if (bitSet == 0) {
+						setColorRed();
+						LCD_string_write(" BIT ERROR\n");
+						setColorDefault();
+						LCD_string_write(" Entering Bits...\n");
+						delay(40);
+						goto setBit;
+					} if (paritySet == 0) {
+						setColorRed();
+						LCD_string_write(" PARITY ERROR\n");
+						setColorDefault();
+						LCD_string_write(" Entering Parity...\n");
+						delay(40);
+						goto setParity;
+					}
+				}
+			}
+		} else goto uartMenu;
+	
+	setRate: 
+		clearLCD();
+		fillTop(GRAY);
+		setTextSize(5);
+		setColorMenu();
+		setCursor(30, 0);
+		LCD_string_write("[UART]\n");
 		setTextSize(2);
 		setColorDefault();
 		setCursor(0, 60);
@@ -3158,47 +3205,247 @@ void uart() {
 		LCD_string_write(" <4> 9600 Baud\n");
 		setCursor(0, 220);
 		LCD_string_write(" <5> 19200 Baud\n");
-		baudInput:
+	baudInput:
 		selection = keyDetect();
 		if (selection == '1' ) {
-			TH1 = 0xE6;
+			setCursor(0, 60);
+			LCD_string_write(" ");
+			setColorHighlight1();
+			LCD_string_write("<1> ");
+			setColorHighlight2();
+			LCD_string_write("1200 Baud\n");
+			TH1 = 0xE6;	// 1200 baud
 			PCON = 0x00; //SMOD = 0
 			baudSet = 1;
+			baudType = 0x1;
+			if (initLock == 1) goto verifyUART;
+			else goto uartMenu;
 		}
 		if (selection == '2' ) {
-			TH1 = 0xF3;
+			setCursor(0, 100);
+			LCD_string_write(" ");
+			setColorHighlight1();
+			LCD_string_write("<2> ");
+			setColorHighlight2();
+			LCD_string_write("2400 Baud\n");
+			TH1 = 0xF3; // 2400 baud
 			PCON = 0x00; //SMOD = 0
 			baudSet = 1;
+			baudType = 0x2;
+			if (initLock == 1) goto verifyUART;
+			else goto uartMenu;
 		}
 		if (selection == '3' ) {
-			TH1 = 0xF3;
+			setCursor(0, 140);
+			LCD_string_write(" ");
+			setColorHighlight1();
+			LCD_string_write("<3> ");
+			setColorHighlight2();
+			LCD_string_write("4800 Baud\n");
+			TH1 = 0xF3; //4800 baud
 			PCON = 0x80; //SMOD 1
 			baudSet = 1; 
+			baudType = 0x3;
+			if (initLock == 1) goto verifyUART;
+			else goto uartMenu;
 		}
 		if (selection == '4' ) {
-			TH1 = 0xFD;
+			setCursor(0, 180);
+			LCD_string_write(" ");
+			setColorHighlight1();
+			LCD_string_write("<4> ");
+			setColorHighlight2();
+			LCD_string_write("9600 Baud\n");
+			TH1 = 0xFD; //9600 baud
 			PCON = 0x00; //SMOD 0
 			baudSet = 1;
+			baudType = 0x4;
+			if (initLock == 1) goto verifyUART;
+			else goto uartMenu;
 		}
 		if (selection == '5' ) {
-			TH1 = 0xFD;	
+			setCursor(0, 220);
+			LCD_string_write(" ");
+			setColorHighlight1();
+			LCD_string_write("<5> ");
+			setColorHighlight2();
+			LCD_string_write("19200 Baud\n");
+			TH1 = 0xFD;	//19200 baud
 			PCON = 0x80; //SMOD 1
 			baudSet = 1;
-		} else {
-			goto baudInput;
-		}
+			baudType = 0x5;
+			if (initLock == 1) goto verifyUART;
+			} else {
+			setColorRed();
+			setCursor(0, 240);
+			LCD_string_write(" INPUT ERROR");
+			setColorDefault();
+			goto mainInput;
+			}
 
-		setBit: goto finish;
+		setBit:
+			clearLCD();
+			fillTop(GRAY);
+			setTextSize(5);
+			setColorMenu();
+			setCursor(30, 0);
+			LCD_string_write("[UART]\n");
+			setTextSize(2);
+			setColorDefault();
+			setCursor(0, 60);
+			LCD_string_write(" <1> 8-bit Mode\n");
+			setCursor(0, 100);
+			LCD_string_write(" <2> 9-bit Mode\n");
+		sel:
+		selection = keyDetect();
+			if (selection == '1') {
+				setCursor(0, 60);
+				LCD_string_write(" ");
+				setColorHighlight1();
+				LCD_string_write("<1> ");
+				setColorHighlight2();
+				LCD_string_write("8-bit Mode\n");
+				bitSet = 1;
+				_8b = 1;
+				temp = 1;
+				goto cont;
+			} if (selection == '2') {
+				setCursor(0, 100);
+				LCD_string_write(" ");
+				setColorHighlight1();
+				LCD_string_write("<2> ");
+				setColorHighlight2();
+				LCD_string_write("9-bit Mode\n");
+				bitSet = 1;
+				_8b = 0;
+				temp = 2;
+				goto cont;
+			} else {
+				bitSet = 0;
+				goto sel;
+			}
 
-		setParity: goto finish;
-		finish:
-		return;
+		setParity:
+			if (temp == 0) {
+				setCursor(0, 240);
+				setColorRed();
+				writeNewLine();
+				LCD_string_write("\n Please set the\n  bit mode first.\n");
+				setColorDefault();
+				setCursor(0, 140);
+				LCD_string_write(" <3> Parity (Even)\n     (Odd/None)\n");
+				goto mainInput;
+			} if (temp == 1) {
+				_8b = 1;
+			} if (temp == 2) {
+				_8b = 0;
+			}
+			clearLCD();
+			fillTop(GRAY);
+			setTextSize(5);
+			setColorMenu();
+			setCursor(30, 0);
+			LCD_string_write("[UART]\n");
+			setTextSize(2);
+			setColorDefault();
+			setCursor(0, 60);
+			LCD_string_write(" <1> Even Parity\n");
+			setCursor(0, 100);
+			LCD_string_write(" <2> Odd Parity\n");
+			setCursor(0, 140);
+			LCD_string_write(" <3> No Parity");
+
+			boop: 
+				selection = keyDetect();
+				if (selection == '1') {
+					setCursor(0, 60);
+					LCD_string_write(" ");
+					setColorHighlight1();
+					LCD_string_write("<1> ");
+					setColorHighlight2();
+					LCD_string_write("Even Parity\n");
+					if(_8b == 0) {
+						frame_NES = 0x111;	//9 bit, Even, Parity Set
+						bitSet = 1;
+						goto setFrame;
+					} if (_8b == 1){
+						frame_NES = 0x011;	//8 bit, even, Parity Set
+						bitSet = 1;
+						goto setFrame;
+					} else {
+						frame_NES = 0x100;	//exit
+						goto finish;
+					}
+				} if (selection == '2') {
+					setCursor(0, 100);
+					LCD_string_write(" ");
+					setColorHighlight1();
+					LCD_string_write("<2> ");
+					setColorHighlight2();
+					LCD_string_write("Odd Parity\n");
+
+					if (_8b == 0) {
+						frame_NES = 0x101;		//9 bit, odd, parity set
+						bitSet = 1;
+						goto setFrame;
+					} if (_8b == 1) {
+						frame_NES = 0x001;		//8 bit, odd, parity set
+						bitSet = 1;
+						goto setFrame;
+					} else {
+						frame_NES = 0x100;		//exit
+						goto finish;
+					}
+				} if (selection == '3') {
+					setCursor(0, 140);
+					LCD_string_write(" ");
+					setColorHighlight1();
+					LCD_string_write("<3> ");
+					setColorHighlight2();
+					LCD_string_write("No Parity\n");
+					
+					if (_8b == 0) {
+						frame_NES = 0x100; 			//9 bit, odd, no parity
+						bitSet = 1;
+						goto setFrame;
+					} if (_8b == 1) {
+						frame_NES = 0x000;		 	//8 bit, odd, no parity
+						bitSet = 1;
+						goto setFrame;
+					}
+				} else goto boop; 
+
+			setFrame:	
+				if ((frame_NES == 0x000) || 	//8 bit, odd, no parity
+					(frame_NES == 0x001) ||		//8 bit, odd, parity set
+					(frame_NES == 0x010) ||
+					(frame_NES == 0x011) ||
+					(frame_NES == 0x100) ||
+					(frame_NES == 0x101) ||
+					(frame_NES == 0x110) ||
+					(frame_NES == 0x111)) {
+						paritySet = 1;
+						goto cont;
+				}
+				else {
+						writeNewLine();
+						LCD_string_write(" Something is wrong.");
+						delay(80);
+						bitSet = 0;
+						goto uartMenu;
+				}
+			cont:
+				if (initLock == 1) goto verifyUART;
+				else goto uartMenu;
+			finish:
+				return;
+		
 }
-
 
 
 void main() {
 	__idata unsigned char validKey = 1;
+	
 	
 	delay(10);
 	iowrite8(seg7_address, ON);
@@ -3214,22 +3461,23 @@ void main() {
 	delay(40);
 	iowrite8(seg7_address, OFF);
 	delay(20);
-	seg7Test();
+	//seg7Test();
 	//UART_Init();						// UART init
 	writeSomeLines();					// LCD Power On Self-Test and Welcome message
 
 	clearLCD();							// set LCD background
 	setColorDefault();	// set text color
-	setCursor(30, 120);				
-	//LCD_string_write("RAM POST\n");
-	//writeAllRAM(0xAA);
-	//setCursor(30, 150);
-	//LCD_string_write("...\n");
-	//checkAllRAM(0xAA);
-	UART_en = 0;
+/*	setCursor(30, 120);				
+	LCD_string_write("RAM POST\n");
+	writeAllRAM(0xAA);
+	setCursor(30, 150);
+	LCD_string_write("...\n");
+	checkAllRAM(0xAA);
+	UART_en = 0;*/
 	
 	while (1) {
-		loop:
+	loop:
+		validKey = 1;
 		iowrite8(seg7_address, OFF);
 		clearLCD();
 		setCursor(30, 120);
@@ -3241,7 +3489,7 @@ void main() {
 		selection = keyDetect();
 		if (selection == 'D') {
 			iowrite8(seg7_address, ON);
-			setCursor(10,60);
+			setCursor(10, 60);
 			setColorHighlight1();
 			LCD_string_write("<D>");
 			setColorHighlight2();
@@ -3336,13 +3584,19 @@ void main() {
 			check();
 			goto loop;
 		} if(selection == '1') {
-			if (UART_en == 1) {
 				iowrite8(seg7_address, ON);
 				setCursor(10, 220);
 				setColorHighlight1();
 				LCD_string_write("<1>");
 				setColorHighlight2();
-				LCD_string_write(" UART [Enabled]\n");
+				LCD_string_write(" UART");
+				setTextSize(1);
+				if (UART_en == 1) {
+				 	LCD_string_write(" [Enabled]\n");
+				} if (UART_en == 0) {
+					LCD_string_write(" [Disabled]\n");
+				}
+				setTextSize(2);
 				delay(20);
 				iowrite8(seg7_address, SEG_U);
 				if (validKey == 0) {
@@ -3350,21 +3604,7 @@ void main() {
 					setCursor(60, 280);
 					LCD_string_write("          ");
 				}
-			} else {
-				iowrite8(seg7_address, ON);
-				setCursor(10, 220);
-				setColorHighlight1();
-				LCD_string_write("<1>");
-				setColorHighlight2();
-				LCD_string_write(" UART [Disabled]\n");
-				delay(20);
-				iowrite8(seg7_address, SEG_U);
-				if (validKey == 0) {
-					setColorDefault();
-					setCursor(60, 280);
-					LCD_string_write("          ");
-				}
-			}
+	
 			uart();
 			goto loop;
 		} else {
@@ -3380,6 +3620,7 @@ void main() {
 			LCD_string_write("               \n");
 			goto inputKey;
 		}			
+		
 	}
 }
 			
